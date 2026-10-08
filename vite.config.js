@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  build: {
-    rollupOptions: {
-      input: 'drug-molecule-analyzer.html',
-    },
-  },
+  base: '/drug-molecule-analyzer/',
   server: {
     host: '0.0.0.0',
     port: 5173,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
   },
 });
