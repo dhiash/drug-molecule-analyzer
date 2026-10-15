@@ -40,6 +40,8 @@
     a { color: var(--primary); text-decoration: none; }
     button, input, select { font: inherit; }
     button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+    button:disabled { opacity: 0.65; cursor: wait; }
     .topbar {
       position: sticky; top: 0; z-index: 20;
       background: rgba(255, 255, 255, 0.74);
@@ -95,6 +97,9 @@
     .action-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
     .alert { display: none; margin-top: 1rem; padding: 0.85rem 1rem; background: rgba(201, 61, 77, 0.08); color: var(--danger); border-radius: 12px; border: 1px solid rgba(201, 61, 77, 0.18); }
     .alert.show { display: block; }
+    .status-message { display: none; margin-top: 0.75rem; padding: 0.75rem 0.9rem; color: var(--success); background: rgba(29, 155, 88, 0.09); border: 1px solid rgba(29, 155, 88, 0.2); border-radius: 12px; font-size: 0.92rem; }
+    .status-message.show { display: block; }
+    body.dark .status-message { background: rgba(87, 217, 138, 0.09); border-color: rgba(87, 217, 138, 0.22); }
     .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .tab-btn {
       border: 1px solid var(--border); background: transparent; color: var(--muted);
@@ -223,8 +228,9 @@
           </div>
           <div class="field"><label for="smilesInput">SMILES</label><input id="smilesInput" type="text" placeholder="CC(=O)OC1=CC=CC=C1C(=O)O" /></div>
           <div class="field"><label for="exampleSelect">Example molecules</label><select id="exampleSelect"><option value="">Choose an example</option></select></div>
-          <div class="action-row"><button id="analyzeBtn" class="primary-btn" type="button">Analyze</button><button id="clearBtn" class="secondary-btn" type="button">Clear</button></div>
+          <div class="action-row"><button id="analyzeBtn" class="primary-btn" type="button">Analyze</button><button id="randomAnalyzeBtn" class="secondary-btn" type="button">Random Analysis</button><button id="clearBtn" class="secondary-btn" type="button">Clear</button></div>
           <div id="errorBox" class="alert" role="alert" aria-live="polite"></div>
+          <div id="randomStatus" class="status-message" role="status" aria-live="polite"></div>
         </div>
         <div class="panel" style="background: var(--panel-alt);">
           <h3 style="margin-top:0;">Workflow</h3>
@@ -281,7 +287,7 @@
     <div class="disclaimer-inner"><strong>Scientific disclaimer:</strong> This application is intended for educational and research demonstration purposes only. Molecular descriptors and predictions should not be interpreted as clinical, diagnostic, or therapeutic advice.</div>
   </div>
 
-  <footer>Drug Molecule Analyzer • Educational computational chemistry prototype</footer>
+  <footer>Drug Molecule Analyzer • Educational computational chemistry prototype<br /><small>Made with care by Jai Kishore for a friend.</small></footer>
 
   <script type="module">
     import Chart from 'chart.js/auto';
@@ -659,13 +665,17 @@
     }
 
     let isAnalyzing = false;
-    async function analyzeCurrentMolecule() {
+    async function analyzeCurrentMolecule(options = {}) {
       const nameValue = document.getElementById('drugName').value.trim();
       const smilesValue = document.getElementById('smilesInput').value.trim();
       const cidValue = document.getElementById('pubchemCid').value.trim();
       const errorBox = document.getElementById('errorBox');
       const analyzeButton = document.getElementById('analyzeBtn');
+      const randomButton = document.getElementById('randomAnalyzeBtn');
+      const randomStatus = document.getElementById('randomStatus');
+      const randomName = options.randomName || '';
       if (isAnalyzing) return;
+      if (!randomName) { randomStatus.classList.remove('show'); randomStatus.textContent = ''; }
       errorBox.classList.remove('show');
       errorBox.textContent = '';
       if (!nameValue && !smilesValue && !cidValue) {
@@ -681,7 +691,13 @@
 
       isAnalyzing = true;
       analyzeButton.disabled = true;
-      analyzeButton.textContent = 'Loading...';
+      randomButton.disabled = true;
+      analyzeButton.textContent = 'Analyzing...';
+      if (randomName) {
+        randomButton.textContent = 'Selecting...';
+        randomStatus.textContent = `Selected ${randomName}. Running analysis...`;
+        randomStatus.classList.add('show');
+      }
       try {
         let source;
         if (cidValue) {
@@ -715,14 +731,25 @@
         renderPanels(result);
         addHistory({ name: result.name, mw: result.mw, score: result.drugLikeness.score, time: Date.now(), smiles: result.smiles });
         document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('visible', panel.dataset.panel === 'overview'));
+        document.querySelectorAll('.tab-btn').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === 'overview'));
+        if (randomName) {
+          randomStatus.textContent = `Randomly selected ${randomName} — analysis complete.`;
+          randomStatus.classList.add('show');
+        }
       } catch (error) {
         console.error('Molecule analysis failed.', error);
         errorBox.textContent = 'Unable to retrieve molecular information. Please check the drug name and try again.';
         errorBox.classList.add('show');
+        if (randomName) {
+          randomStatus.textContent = `Could not analyze ${randomName}. Please try Random Analysis again.`;
+          randomStatus.classList.add('show');
+        }
       } finally {
         isAnalyzing = false;
         analyzeButton.disabled = false;
+        randomButton.disabled = false;
         analyzeButton.textContent = 'Analyze';
+        randomButton.textContent = 'Random Analysis';
       }
     }
     function toggleTheme() {
@@ -737,6 +764,20 @@
 
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     document.getElementById('analyzeBtn').addEventListener('click', analyzeCurrentMolecule);
+    document.getElementById('randomAnalyzeBtn').addEventListener('click', () => {
+      if (isAnalyzing) return;
+      const names = Object.keys(DATABASE);
+      const latestName = getHistory()[0]?.name;
+      let candidates = names.filter((name) => normalize(name) !== normalize(latestName));
+      if (!candidates.length) candidates = names;
+      const selectedName = candidates[Math.floor(Math.random() * candidates.length)];
+      const molecule = DATABASE[selectedName];
+      document.getElementById('drugName').value = molecule.name;
+      document.getElementById('pubchemCid').value = '';
+      document.getElementById('smilesInput').value = molecule.smiles;
+      document.getElementById('exampleSelect').value = selectedName;
+      analyzeCurrentMolecule({ randomName: selectedName });
+    });
     document.getElementById('clearBtn').addEventListener('click', () => {
       document.getElementById('drugName').value = '';
       document.getElementById('smilesInput').value = '';
