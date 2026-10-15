@@ -147,7 +147,8 @@
     .empty-state { color: var(--muted); background: var(--panel-alt); border: 1px dashed var(--border); border-radius: 14px; padding: 1rem; }
     .compare-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 1rem; }
     .compare-summary { font-weight: 700; margin-top: 1rem; }
-    .chart-container { position: relative; width: 100%; height: 280px; margin-top: 1rem; }
+    .compare-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .chart-container { position: relative; width: 100%; height: 280px; min-width: 0; }
     .chart-container canvas { max-width: 100%; }
     .feature-note { color: var(--muted); font-size: 0.9rem; }
     .action-row > button { max-width: 100%; }
@@ -167,6 +168,7 @@
       .nav-links { order: 3; width: 100%; justify-content: space-between; gap: 0.5rem; }
       .nav-links a { font-size: 0.82rem; }
       section { padding: 1.7rem 1rem; }
+      .compare-charts { grid-template-columns: 1fr; }
       .chart-container { height: 240px; }
     }
   </style>
@@ -275,7 +277,7 @@
       </div>
       <div id="compareSummary" class="compare-summary">Comparing Aspirin and Paracetamol</div>
       <p class="feature-note">Built-in example descriptors use different units; compare values only within each descriptor. No chemical fingerprint similarity is calculated.</p>
-      <div class="chart-container"><canvas id="compareChart" role="img" aria-label="Molecular descriptor comparison chart"></canvas></div>
+      <div class="compare-charts" aria-label="Molecular descriptor comparisons"><div class="chart-container"><canvas id="compareMwChart" role="img" aria-label="Molecular weight comparison chart"></canvas></div><div class="chart-container"><canvas id="compareLogpChart" role="img" aria-label="LogP comparison chart"></canvas></div><div class="chart-container"><canvas id="compareTpsaChart" role="img" aria-label="TPSA comparison chart"></canvas></div></div>
     </section>
 
     <section id="history">
@@ -537,23 +539,44 @@
       renderHistory(next);
       renderDashboard(next);
     }
-    let comparisonChart;
+    const comparisonCharts = {};
     function renderComparison() {
       const aName = document.getElementById('compareA').value;
       const bName = document.getElementById('compareB').value;
-      const a = DATABASE[aName]; const b = DATABASE[bName];
-      const canvas = document.getElementById('compareChart');
-      if (comparisonChart) comparisonChart.destroy();
-      comparisonChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-          labels: ['MW', 'LogP', 'TPSA'],
-          datasets: [
-            { label: aName, data: [a.mw, a.logp, a.tpsa], backgroundColor: '#3d6cdf' },
-            { label: bName, data: [b.mw, b.logp, b.tpsa], backgroundColor: '#7a4ff0' }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      const a = DATABASE[aName];
+      const b = DATABASE[bName];
+      if (!a || !b) {
+        document.getElementById('compareSummary').textContent = 'Choose two supported molecules to compare.';
+        return;
+      }
+
+      // Keep each descriptor on its own axis: MW, LogP, and TPSA have different units and scales.
+      const descriptors = [
+        { key: 'mw', label: 'Molecular weight (Da)', canvasId: 'compareMwChart' },
+        { key: 'logp', label: 'LogP', canvasId: 'compareLogpChart' },
+        { key: 'tpsa', label: 'TPSA (Å²)', canvasId: 'compareTpsaChart' }
+      ];
+
+      descriptors.forEach(({ key, label, canvasId }) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        comparisonCharts[key]?.destroy();
+        comparisonCharts[key] = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: [label],
+            datasets: [
+              { label: aName, data: [a[key]], backgroundColor: '#3d6cdf' },
+              { label: bName, data: [b[key]], backgroundColor: '#7a4ff0' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } },
+            plugins: { legend: { position: 'bottom' }, title: { display: true, text: label } }
+          }
+        });
       });
       document.getElementById('compareSummary').textContent = `Comparing ${aName} and ${bName}`;
     }
