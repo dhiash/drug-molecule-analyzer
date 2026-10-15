@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/drug-molecule-analyzer/',
+  base: process.env.GITHUB_PAGES === 'true' ? '/drug-molecule-analyzer/' : '/',
   server: {
     host: '0.0.0.0',
     port: 5173,
