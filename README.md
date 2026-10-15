@@ -1,32 +1,35 @@
 # Drug Molecule Analyzer
 
-An educational computational chemistry web application for exploring molecular properties, drug-likeness filters, descriptor comparisons, and illustrative structure visualizations.
+An educational computational chemistry website for exploring molecular properties, rule-based drug-likeness screens, descriptor comparisons, and illustrative structure views.
 
 ## Features
 
-- Look up molecules by name or PubChem CID, or submit a SMILES string.
-- Retrieve molecular properties from PubChem PUG REST, with a small built-in example molecule set available offline.
-- Review molecular formula, molecular weight, XLogP, TPSA, hydrogen-bond counts, rotatable bonds, heavy atoms, and charge when supplied by PubChem.
+- Look up compounds by name, PubChem CID, or SMILES using PubChem PUG REST when needed.
+- Analyze five built-in examples (Aspirin, Paracetamol, Ibuprofen, Caffeine, and Amoxicillin) without an API request.
+- Use **Random Analysis** to select and analyze a built-in example, avoiding the most recently analyzed example when alternatives are available.
+- Review molecular formula, molecular weight, exact mass, XLogP, TPSA, hydrogen-bond counts, rotatable bonds, heavy atoms, and formal charge when data is available.
 - Explore Lipinski, Veber, Ghose, and Muegge rule screens.
-- Compare example-molecule descriptors with a chart.
-- Review recent analyses saved in browser storage, switch themes, and print/save a report.
-- View ADMET and descriptor-rule demonstrations with their limitations disclosed.
+- Compare built-in example descriptors in a chart.
+- Review recent analysis history and dashboard summaries stored in browser local storage.
+- Switch between light and dark themes, view the illustrative 2D/3D panels, and print or save a report.
 
-## Technologies
+## Technologies and data source
 
-- Vite
-- Vanilla JavaScript and CSS
-- Chart.js
-- PubChem PUG REST API
+- Vite, vanilla JavaScript, and CSS
+- Chart.js for the comparison chart
+- PubChem PUG REST API for molecular properties for compounds not handled by the built-in examples
+- A small curated in-code example set for offline demonstrations
 
-## Install and run locally
+## Run locally
+
+Requirements: Node.js and npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (normally `http://localhost:5173/drug-molecule-analyzer/`).
+Open the local URL shown by Vite. This repository's Vite configuration uses the base path `/drug-molecule-analyzer/`, so the local development URL is normally `http://localhost:5173/drug-molecule-analyzer/`.
 
 ## Build and preview
 
@@ -35,24 +38,26 @@ npm run build
 npm run preview
 ```
 
-The production site is generated in `dist/`. The preview server normally runs at `http://localhost:4173/drug-molecule-analyzer/`.
+The production build is written to `dist/`. The preview URL is normally `http://localhost:4173/drug-molecule-analyzer/`.
 
-## GitHub Pages deployment
+## Environment variables
 
-The GitHub Actions workflow builds the Vite application and deploys `dist/` to GitHub Pages when changes are pushed to `main`. The Vite base path is `/drug-molecule-analyzer/`. In the repository's Pages settings, select **GitHub Actions** as the build and deployment source.
+No environment variables are required. PubChem lookups run in the browser and require an internet connection. Built-in examples can be analyzed offline.
 
-Published URL: <https://dhiash.github.io/drug-molecule-analyzer/>
+## Scientific calculations and limitations
 
-## Limitations
+- Molecular property values for non-example compounds are retrieved from PubChem. Missing values are displayed as unavailable rather than invented.
+- Drug-likeness scores and Lipinski/Veber/Ghose/Muegge checks are rule-based educational screens, not validated measures of efficacy or safety.
+- ADMET labels are rule-based demonstrations, not validated pharmacokinetic predictions.
+- The descriptor demonstration is a transparent threshold heuristic, not a trained AI/ML model; it has no training dataset or validated predictive accuracy.
+- The 2D sketch and animated 3D view are illustrative visualizations, not chemically accurate structure renderings or molecular conformer calculations.
+- Comparison charts use built-in example descriptors. They do not calculate chemical fingerprint similarity.
+- These estimates are for educational and experimental learning only and must not be used for clinical, diagnostic, or therapeutic decisions.
 
-- PubChem lookups require an internet connection. The built-in example molecules can be analyzed without one.
-- Descriptors for non-example molecules are sourced from PubChem; missing values are shown as unavailable rather than inferred.
-- The 2D sketch and animated 3D view are illustrative visualizations, not chemically accurate structure renderings or conformer calculations.
-- ADMET messages are simple rule-based demonstrations, not validated pharmacokinetic predictions.
-- The descriptor demo is a transparent threshold heuristic, not a trained machine-learning model. It has no training dataset or validated accuracy.
-- Molecule comparison charts show descriptor values for the built-in examples; no chemically validated fingerprint similarity is calculated.
-- This browser application is not a substitute for a cheminformatics toolkit or experimental measurements.
+## Credits
 
-## Scientific disclaimer
+Created with care by Jai Kishore for a friend. This project is intended for educational and experimental learning.
 
-This application is intended for educational and research demonstration purposes only. Molecular descriptors and predictions should not be interpreted as clinical, diagnostic, or therapeutic advice.
+## Deployment note
+
+The Vite base path is configured as `/drug-molecule-analyzer/` for the existing GitHub Pages deployment at <https://dhiash.github.io/drug-molecule-analyzer/>. If deploying the same source at a domain root (for example, a Vercel root URL), verify the hosting platform's base-path configuration before release.
