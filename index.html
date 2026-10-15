@@ -232,7 +232,7 @@
             <li>Input a molecule name, CID, or SMILES.</li>
             <li>Validate the structure and fetch metadata when available.</li>
             <li>Compute properties and drug-likeness filters.</li>
-            <li>Review ADMET and ML demo outputs.</li>
+            <li>Review the ADMET preview and descriptor heuristic.</li>
           </ol>
           <p style="color: var(--muted); margin-bottom: 0;">This is an educational prototype, not a clinical model.</p>
         </div>
@@ -267,8 +267,8 @@
         <div class="field"><label for="compareA">Molecule A</label><select id="compareA"><option value="Aspirin">Aspirin</option><option value="Paracetamol">Paracetamol</option><option value="Ibuprofen">Ibuprofen</option><option value="Caffeine">Caffeine</option><option value="Amoxicillin">Amoxicillin</option></select></div>
         <div class="field"><label for="compareB">Molecule B</label><select id="compareB"><option value="Paracetamol">Paracetamol</option><option value="Aspirin">Aspirin</option><option value="Ibuprofen">Ibuprofen</option><option value="Caffeine">Caffeine</option><option value="Amoxicillin">Amoxicillin</option></select></div>
       </div>
-      <div id="compareSummary" class="compare-summary">Similarity: 0%</div>
-      <p class="feature-note">Descriptor values are compared for the built-in examples. No chemical fingerprint similarity is calculated.</p>
+      <div id="compareSummary" class="compare-summary">Comparing Aspirin and Paracetamol</div>
+      <p class="feature-note">Built-in example descriptors use different units; compare values only within each descriptor. No chemical fingerprint similarity is calculated.</p>
       <div class="chart-container"><canvas id="compareChart" role="img" aria-label="Molecular descriptor comparison chart"></canvas></div>
     </section>
 
@@ -286,11 +286,11 @@
   <script type="module">
     import Chart from 'chart.js/auto';
     const DATABASE = {
-      Aspirin: { name: 'Aspirin', smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O', formula: 'C9H8O4', mw: 180.16, logp: 1.19, tpsa: 63.6, hbd: 1, hba: 4, rot: 3, heavy: 13, formalCharge: 0 },
-      Paracetamol: { name: 'Paracetamol', smiles: 'CC(=O)NC1=CC=C(O)C=C1', formula: 'C8H9NO2', mw: 151.16, logp: 0.46, tpsa: 49.3, hbd: 2, hba: 3, rot: 2, heavy: 11, formalCharge: 0 },
-      Ibuprofen: { name: 'Ibuprofen', smiles: 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', formula: 'C13H18O2', mw: 206.29, logp: 3.97, tpsa: 37.3, hbd: 1, hba: 2, rot: 4, heavy: 15, formalCharge: 0 },
-      Caffeine: { name: 'Caffeine', smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C', formula: 'C8H10N4O2', mw: 194.19, logp: -0.07, tpsa: 61.8, hbd: 0, hba: 3, rot: 1, heavy: 14, formalCharge: 0 },
-      Amoxicillin: { name: 'Amoxicillin', smiles: 'CC1(C)SC(NC1C(=O)O)C(=O)NC(C2=CC=CC=C2)C(=O)O', formula: 'C16H19N3O5S', mw: 365.41, logp: 0.87, tpsa: 118.2, hbd: 4, hba: 7, rot: 5, heavy: 25, formalCharge: 0 }
+      Aspirin: { name: 'Aspirin', smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O', formula: 'C9H8O4', mw: 180.16, exactMass: 180.04225873, logp: 1.2, tpsa: 63.6, hbd: 1, hba: 4, rot: 3, heavy: 13, formalCharge: 0 },
+      Paracetamol: { name: 'Paracetamol', smiles: 'CC(=O)NC1=CC=C(C=C1)O', formula: 'C8H9NO2', mw: 151.16, exactMass: 151.06332853, logp: 0.5, tpsa: 49.3, hbd: 2, hba: 2, rot: 1, heavy: 11, formalCharge: 0 },
+      Ibuprofen: { name: 'Ibuprofen', smiles: 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', formula: 'C13H18O2', mw: 206.28, exactMass: 206.130679813, logp: 3.5, tpsa: 37.3, hbd: 1, hba: 2, rot: 4, heavy: 15, formalCharge: 0 },
+      Caffeine: { name: 'Caffeine', smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C', formula: 'C8H10N4O2', mw: 194.19, exactMass: 194.08037557, logp: -0.1, tpsa: 58.4, hbd: 0, hba: 3, rot: 0, heavy: 14, formalCharge: 0 },
+      Amoxicillin: { name: 'Amoxicillin', smiles: 'CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=C(C=C3)O)N)C(=O)O)C', formula: 'C16H19N3O5S', mw: 365.4, exactMass: 365.10454189, logp: -2, tpsa: 158, hbd: 4, hba: 7, rot: 4, heavy: 25, formalCharge: 0 }
     };
 
     const PROPERTY_FIELDS = 'CanonicalSMILES,MolecularFormula,MolecularWeight,ExactMass,XLogP,TPSA,HBondDonorCount,HBondAcceptorCount,RotatableBondCount,HeavyAtomCount,Charge,IUPACName';
@@ -378,6 +378,7 @@
       return {
         prediction: availableChecks.length === 0 ? 'Insufficient descriptor data' : score >= 4 ? 'Most demo thresholds met' : score >= 2 ? 'Some demo thresholds met' : 'Few demo thresholds met',
         score: availableChecks.length ? score : null,
+        totalChecks: availableChecks.length,
         modelName: 'Rule-based descriptor heuristic; not a trained model',
         dataset: 'No training dataset or validated accuracy',
         importantFactors: [{ label: 'LogP', value: props.logp }, { label: 'MW', value: props.mw }, { label: 'TPSA', value: props.tpsa }, { label: 'H-bond donors', value: props.hbd }, { label: 'H-bond acceptors', value: props.hba }]
@@ -440,12 +441,13 @@
         if (!response.ok) throw new Error(`PubChem returned HTTP ${response.status}`);
         const data = await response.json();
         const props = data?.PropertyTable?.Properties?.[0];
-        if (!props || !props.CanonicalSMILES || !props.MolecularFormula || !Number.isFinite(Number(props.MolecularWeight))) {
+        const smiles = props?.CanonicalSMILES || props?.ConnectivitySMILES;
+        if (!props || !smiles || !props.MolecularFormula || !Number.isFinite(Number(props.MolecularWeight))) {
           throw new Error('PubChem response did not contain the required molecular data');
         }
         return {
           name: fallbackName || props.IUPACName || 'PubChem molecule',
-          smiles: props.CanonicalSMILES,
+          smiles,
           formula: props.MolecularFormula,
           mw: Number(props.MolecularWeight),
           exactMass: props.ExactMass == null ? null : Number(props.ExactMass),
@@ -462,13 +464,19 @@
       }
     }
     function fetchPubChemByName(name) { return fetchPubChem(`name/${encodeURIComponent(name)}`, name); }
-    function fetchPubChemByCid(cid) { return fetchPubChem(`cid/${encodeURIComponent(cid)}`, `PubChem CID ${cid}`); }
+    function fetchPubChemByCid(cid) { return fetchPubChem(`cid/${encodeURIComponent(cid)}`, ''); }
     function fetchPubChemBySmiles(smiles) { return fetchPubChem(`smiles/${encodeURIComponent(smiles)}`, 'Custom molecule'); }
     function getHistory() {
       try {
         const entries = JSON.parse(localStorage.getItem('drug_molecule_history') || '[]');
         if (!Array.isArray(entries)) throw new TypeError('Saved analysis history is not a list');
-        return entries;
+        const validEntries = entries.filter((entry) => entry
+          && typeof entry.name === 'string'
+          && typeof entry.smiles === 'string'
+          && Number.isFinite(Number(entry.time))
+          && Number.isFinite(Number(entry.mw)));
+        if (validEntries.length !== entries.length) console.warn('Some invalid saved history entries were ignored.');
+        return validEntries;
       } catch (error) {
         console.warn('Unable to read saved analysis history.', error);
         return [];
@@ -485,7 +493,7 @@
       const host = document.getElementById('historyList');
       if (!host) return;
       if (!entries.length) { host.innerHTML = '<div class="empty-state">No analysis history yet. Start with a molecule above.</div>'; return; }
-      host.innerHTML = entries.map((entry) => `<button class="history-item" type="button" data-name="${escapeHTML(entry.name)}"><div><strong>${escapeHTML(entry.name)}</strong><small>${escapeHTML(new Date(entry.time).toLocaleString())}</small></div><div><span>${escapeHTML(entry.mw)} Da</span><br /><span>${escapeHTML(entry.score)}/100</span></div></button>`).join('');
+      host.innerHTML = entries.map((entry) => `<button class="history-item" type="button" data-name="${escapeHTML(entry.name)}"><div><strong>${escapeHTML(entry.name)}</strong><small>${escapeHTML(new Date(entry.time).toLocaleString())}</small></div><div><span>${escapeHTML(entry.mw)} Da</span><br /><span>${entry.score == null ? 'N/A' : `${escapeHTML(entry.score)}/100`}</span></div></button>`).join('');
       host.querySelectorAll('[data-name]').forEach((button) => {
         button.addEventListener('click', () => {
           const item = entries.find((entry) => entry.name === button.getAttribute('data-name'));
@@ -502,7 +510,8 @@
       if (!host) return;
       const total = entries.length;
       const avgMw = total ? (entries.reduce((sum, item) => sum + Number(item.mw || 0), 0) / total).toFixed(1) : '0.0';
-      const avgScore = total ? (entries.reduce((sum, item) => sum + Number(item.score || 0), 0) / total).toFixed(1) : '0.0';
+      const scoreValues = entries.map((item) => numberOrNull(item.score)).filter((value) => value !== null);
+      const avgScore = total ? (scoreValues.length ? (scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length).toFixed(1) : 'N/A') : '0.0';
       const latest = entries[0];
       const counts = {};
       entries.forEach((item) => { counts[item.name] = (counts[item.name] || 0) + 1; });
@@ -624,7 +633,7 @@
       document.getElementById('mlPanel').innerHTML = `
         <div class="ml-box">
           <div class="pill">${result.ml.prediction}</div>
-          <p><strong>Rule count:</strong> ${result.ml.score == null ? 'N/A' : `${result.ml.score}/5 demo thresholds met`}</p>
+          <p><strong>Rule count:</strong> ${result.ml.score == null ? 'N/A' : `${result.ml.score}/${result.ml.totalChecks} available demo thresholds met`}</p>
           <p><strong>Calculation:</strong> ${result.ml.modelName}</p>
           <p><strong>Training:</strong> ${result.ml.dataset}</p>
           <div class="factor-list">
