@@ -347,17 +347,19 @@
         (Math.max(0, props.rot - 10) / 10) * 12
       ];
       const rawScore = Math.max(0, Math.min(100, Math.round(100 - penalties.reduce((total, penalty) => total + penalty, 0))));
-      const score = hasScoreData ? rawScore : null;
+      const isVerySmall = props.mw != null && props.mw < 100;
+      const score = hasScoreData ? (isVerySmall ? 0 : rawScore) : null;
       return {
         score,
-        label: score === null ? 'Insufficient data' : score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Moderate' : 'Poor',
+        label: score === null ? 'Insufficient data' : isVerySmall ? 'Unlikely drug-like (very low molecular weight)' : score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Moderate' : 'Poor',
         lipinski,
         veber: { pass: veberPass },
         ghose: { pass: ghosePass },
         muegge: { pass: mueggePass },
         overall: Object.values(lipinski).some((value) => value === null)
           ? 'INSUFFICIENT DATA'
-          : (lipinski.mwPass && lipinski.logpPass && lipinski.hbdPass && lipinski.hbaPass) ? 'LIKELY DRUG-LIKE' : 'NEEDS REVIEW'
+          : props.mw < 100 ? 'UNLIKELY DRUG-LIKE: VERY LOW MOLECULAR WEIGHT'
+          : (lipinski.mwPass && lipinski.logpPass && lipinski.hbdPass && lipinski.hbaPass) ? 'PASSES BASIC DRUG-LIKENESS SCREEN' : 'NEEDS REVIEW'
       };
     }
     function createADMET(props) {
@@ -384,7 +386,7 @@
       const availableChecks = checks.filter((_, index) => values[index] != null);
       const score = availableChecks.filter(Boolean).length;
       return {
-        prediction: availableChecks.length === 0 ? 'Insufficient descriptor data' : score >= 4 ? 'Most demo thresholds met' : score >= 2 ? 'Some demo thresholds met' : 'Few demo thresholds met',
+        prediction: availableChecks.length === 0 ? 'Insufficient descriptor data' : props.mw != null && props.mw < 100 ? 'Unlikely drug-like candidate: molecular weight is below the demo screening range' : score >= 4 ? 'Most demo thresholds met' : score >= 2 ? 'Some demo thresholds met' : 'Few demo thresholds met',
         score: availableChecks.length ? score : null,
         totalChecks: availableChecks.length,
         modelName: 'Rule-based descriptor heuristic; not a trained model',
